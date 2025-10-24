@@ -1,0 +1,1375 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>助動詞カードゲーム</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(180deg, #1a1a2e 0%, #16213e 100%);
+            color: #fff;
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+        .game-container {
+            max-width: 480px;
+            margin: 0 auto;
+            background: #0f1419;
+            min-height: 100vh;
+            position: relative;
+            box-shadow: 0 0 40px rgba(0,0,0,0.5);
+        }
+        .game-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+        }
+        .turn-info {
+            font-size: 18px;
+            font-weight: bold;
+        }
+        .score-display {
+            display: flex;
+            gap: 15px;
+            font-size: 16px;
+        }
+        .score-item {
+            background: rgba(0,0,0,0.3);
+            padding: 5px 12px;
+            border-radius: 15px;
+        }
+        .battle-field {
+            padding: 20px 15px;
+            min-height: 400px;
+        }
+        .team-section {
+            margin-bottom: 25px;
+        }
+        .team-label {
+            font-size: 14px;
+            color: #888;
+            margin-bottom: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .ko-count {
+            background: #ff4444;
+            padding: 3px 10px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: bold;
+        }
+        .character-cards {
+            display: flex;
+            gap: 8px;
+            justify-content: center;
+        }
+        .char-card {
+            background: linear-gradient(135deg, #2d3748 0%, #1a202c 100%);
+            border-radius: 12px;
+            padding: 10px;
+            width: 110px;
+            border: 3px solid #444;
+            transition: all 0.3s;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+        }
+        .char-card.active {
+            border-color: #ffd700;
+            transform: scale(1.05);
+            box-shadow: 0 0 20px rgba(255,215,0,0.5);
+        }
+        .char-card.defeated {
+            opacity: 0.3;
+            filter: grayscale(100%);
+        }
+        .char-card.opponent {
+            background: linear-gradient(135deg, #4a1a1a 0%, #2d1a1a 100%);
+        }
+        .char-name {
+            font-size: 13px;
+            font-weight: bold;
+            margin-bottom: 8px;
+            text-align: center;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .char-hp {
+            font-size: 11px;
+            margin-bottom: 5px;
+            text-align: center;
+        }
+        .hp-bar-container {
+            background: #333;
+            height: 8px;
+            border-radius: 4px;
+            overflow: hidden;
+            margin-bottom: 5px;
+        }
+        .hp-bar-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #4ade80, #22c55e);
+            transition: width 0.3s;
+        }
+        .hp-bar-fill.low {
+            background: linear-gradient(90deg, #fbbf24, #f59e0b);
+        }
+        .hp-bar-fill.critical {
+            background: linear-gradient(90deg, #f87171, #ef4444);
+        }
+        .char-atk {
+            font-size: 11px;
+            text-align: center;
+            color: #fbbf24;
+        }
+        .control-panel {
+            background: rgba(255,255,255,0.05);
+            padding: 15px;
+            border-top: 2px solid rgba(255,255,255,0.1);
+        }
+        .cost-display {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 12px;
+            border-radius: 12px;
+            text-align: center;
+            margin-bottom: 15px;
+            font-size: 18px;
+            font-weight: bold;
+        }
+        .action-buttons {
+            display: flex;
+            gap: 8px;
+        }
+        .action-btn {
+            flex: 1;
+            background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+            color: white;
+            border: none;
+            padding: 14px;
+            border-radius: 10px;
+            font-size: 14px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.2s;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+        }
+        .action-btn:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 12px rgba(0,0,0,0.4);
+        }
+        .action-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        .action-btn.swap {
+            background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
+        }
+        .action-btn.end {
+            background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+        }
+        .quiz-container {
+            padding: 20px;
+            min-height: calc(100vh - 200px);
+            display: flex;
+            flex-direction: column;
+        }
+        .quiz-header {
+            background: rgba(255,255,255,0.1);
+            padding: 15px;
+            border-radius: 12px;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        .quiz-topic {
+            color: #fbbf24;
+            font-size: 16px;
+            margin-bottom: 5px;
+        }
+        .quiz-question {
+            font-size: 20px;
+            line-height: 1.6;
+            padding: 20px;
+            background: rgba(255,255,255,0.05);
+            border-radius: 12px;
+            margin-bottom: 20px;
+            min-height: 120px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+        }
+        .quiz-choices {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        .quiz-choice {
+            background: rgba(255,255,255,0.1);
+            padding: 15px;
+            border-radius: 10px;
+            border: 2px solid rgba(255,255,255,0.2);
+            cursor: pointer;
+            transition: all 0.2s;
+            font-size: 15px;
+            text-align: center;
+        }
+        .quiz-choice:hover {
+            background: rgba(255,255,255,0.2);
+            border-color: #667eea;
+            transform: translateX(5px);
+        }
+        .quiz-choice.correct {
+            background: rgba(34, 197, 94, 0.3);
+            border-color: #22c55e;
+        }
+        .quiz-choice.incorrect {
+            background: rgba(239, 68, 68, 0.3);
+            border-color: #ef4444;
+        }
+        .selection-screen {
+            padding: 20px;
+            min-height: 100vh;
+        }
+        .selection-title {
+            text-align: center;
+            font-size: 24px;
+            margin-bottom: 10px;
+        }
+        .selection-subtitle {
+            text-align: center;
+            color: #888;
+            margin-bottom: 25px;
+        }
+        .hand-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+        .hand-card {
+            background: linear-gradient(135deg, #2d3748 0%, #1a202c 100%);
+            padding: 15px;
+            border-radius: 12px;
+            border: 3px solid #444;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .hand-card:hover {
+            transform: scale(1.05);
+        }
+        .hand-card.selected {
+            border-color: #ffd700;
+            background: linear-gradient(135deg, #3d4758 0%, #2a303c 100%);
+        }
+        .hand-card-name {
+            font-weight: bold;
+            margin-bottom: 8px;
+            font-size: 16px;
+        }
+        .hand-card-stats {
+            display: flex;
+            justify-content: space-around;
+            font-size: 14px;
+            margin-top: 8px;
+        }
+        .confirm-btn {
+            width: 100%;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 18px;
+            border-radius: 12px;
+            font-size: 18px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .confirm-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        .battle-log {
+            background: rgba(0,0,0,0.5);
+            padding: 10px;
+            max-height: 150px;
+            overflow-y: auto;
+            font-size: 12px;
+            margin-top: 15px;
+            border-radius: 8px;
+        }
+        .log-entry {
+            margin: 3px 0;
+            padding: 3px 8px;
+            border-left: 2px solid #667eea;
+        }
+        .result-screen {
+            padding: 40px 20px;
+            text-align: center;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+        }
+        .result-title {
+            font-size: 48px;
+            margin-bottom: 30px;
+            text-shadow: 0 0 20px rgba(255,215,0,0.5);
+        }
+        .result-score {
+            font-size: 36px;
+            margin: 30px 0;
+            color: #ffd700;
+        }
+        .result-message {
+            font-size: 20px;
+            margin-bottom: 40px;
+            color: #aaa;
+        }
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.8);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+        .modal-content {
+            background: #1a202c;
+            border-radius: 15px;
+            padding: 25px;
+            max-width: 400px;
+            width: 90%;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+        .modal-title {
+            font-size: 20px;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        .skill-list {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        .skill-item {
+            background: rgba(255,255,255,0.1);
+            padding: 12px;
+            border-radius: 8px;
+            border: 2px solid rgba(255,255,255,0.2);
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .skill-item:hover {
+            background: rgba(255,255,255,0.2);
+            border-color: #667eea;
+        }
+        .skill-name {
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+        .skill-cost {
+            color: #fbbf24;
+            font-size: 14px;
+        }
+        .skill-desc {
+            color: #aaa;
+            font-size: 12px;
+            margin-top: 5px;
+            line-height: 1.4;
+        }
+        .close-modal {
+            width: 100%;
+            margin-top: 15px;
+            background: #ef4444;
+            color: white;
+            border: none;
+            padding: 12px;
+            border-radius: 8px;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <div class="game-container" id="gameContainer"></div>
+
+    <script>
+        const chara = [
+            ["る・らる", 100, 20, [0,1,2,3], 4],
+            ["す・さす・しむ", 80, 30, [4,1], 2],
+            ["む・むず", 80, 20, [8,9,10,11,12], 5],
+            ["つ・ぬ", 200, 15, [17,18], 2],
+            ["まし", 60, 40, [13,14,15], 3],
+            ["たり(連用)", 70, 25, [17,21], 2],
+            ["り", 70, 25, [17,21], 2],
+            ["ごとし", 100, 30, [37], 1],
+            ["たり(連体)", 150, 30, [35], 1],
+            ["なり(連体)", 100, 30, [35,36], 2],
+            ["まじ", 80, 10, [6,7,31,32,33,34], 6],
+            ["べし", 80, 20, [8,9,11,28,29,30], 6],
+            ["なり(終止)", 100, 30, [26,27], 2],
+            ["あり(終止)", 80, 20, [12,27], 2],
+            ["らし", 80, 30, [27], 1],
+            ["らむ", 120, 30, [12,25,26], 3],
+            ["け", 120, 30, [19], 1],
+            ["たし", 80, 10, [16], 1],
+            ["けむ", 100, 30, [22,23,24], 3],
+            ["けり", 100, 30, [19,20], 2],
+            ["まほし", 80, 10, [16], 1],
+            ["じ", 80, 20, [6,7], 2],
+            ["ず", 100, 30, [5], 1]
+        ];
+
+        const skill = [
+            ["受け身", 1, "被ダメ30%軽減(1ターン)"],
+            ["尊敬", 2, "HP+10,ATK+10/相手ATK-10%"],
+            ["可能", 2, "コスト無視で追加スキル使用"],
+            ["自発", 1, "カードを1枚引く"],
+            ["使役", 1, "相手に自傷させる"],
+            ["打消し", 2, "被ダメ10%軽減"],
+            ["打消し推量", 3, "相手次ターン行動不可"],
+            ["打消し意思", 3, "次ターンスキップ/その次2倍ダメ"],
+            ["推量", 1, "相手ATK-20"],
+            ["意思", 2, "1.5倍攻撃"],
+            ["勧誘", 1, "カードを1枚引く"],
+            ["仮定", 2, "相手スキルコスト+2"],
+            ["婉曲", 2, "ベンチから攻撃"],
+            ["反実仮想", 5, "HP全回復/次ターン3倍ダメ"],
+            ["ためらいの意志", 3, "2ターン待機で相手撃破"],
+            ["実現不可能な希望", 2, "HP50%回復"],
+            ["希望", 1, "HP30%回復"],
+            ["完了", 3, "最大HP10-50%ランダムダメ"],
+            ["強意", 2, "自分コスト-1/相手+1"],
+            ["過去", 2, "前回攻撃を半額再使用"],
+            ["詠嘆", 1, "バフ効果次ターン継続"],
+            ["存続", 3, "最大HP10%×3ターン継続ダメ"],
+            ["過去推量", 1, "相手HP-20"],
+            ["過去伝聞", 2, "相手の前回攻撃コピー"],
+            ["過去婉曲", 2, "相手ベンチが相手攻撃"],
+            ["現在推量", 1, "相手ATK-20"],
+            ["現在伝聞", 2, "相手攻撃コピー"],
+            ["推定", 3, "相手HPを50に固定"],
+            ["当然", 2, "バフ無視攻撃"],
+            ["命令", 1, "相手カードを奪う"],
+            ["適当", 2, "相手メイン/ベンチ入替"],
+            ["不可能", 1, "相手次ターンドロー不可"],
+            ["打消し当然", 10, "相手コスト全破壊"],
+            ["禁止", 1, "相手サポート使用不可"],
+            ["不適当", 1, "相手ATK-30"],
+            ["断定", 1, "通常攻撃"],
+            ["存在", 1, "ベンチと交代"],
+            ["比況", 3, "HP低ければ相手と同値化"],
+            ["原因推量", 1, "通常攻撃"],
+            ["過去原因推量", 3, "減少HP分ダメージ"],
+            ["例示", 4, "次ターンHP0でも行動可"],
+            ["並列", 4, "攻撃+まきびし(30/ターン)"]
+        ];
+
+        const quizData = [
+            {question: "今日はまして、母の悲しがらるることは", answer: "尊敬", choices: ["尊敬", "自発", "可能", "受身", "使役"], topic: "る"},
+            {question: "興に入られ侍り", answer: "尊敬", choices: ["尊敬", "受身", "完了", "自発", "過去"], topic: "る"},
+            {question: "知らるる身こそ悲しけれ", answer: "自発", choices: ["自発", "尊敬", "受身", "可能", "使役"], topic: "る"},
+            {question: "いとほしう思ゆるなり", answer: "自発", choices: ["自発", "尊敬", "受身", "可能", "完了"], topic: "る"},
+            {question: "いづくより来るぞ", answer: "可能", choices: ["可能", "受身", "尊敬", "自発", "使役"], topic: "る"}
+        ];
+
+        let gameState = {
+            turn: 0,
+            phase: 'init',
+            order: null,
+            playerHand: [],
+            opponentHand: [],
+            playerTeam: [],
+            opponentTeam: [],
+            playerActiveIdx: 0,
+            opponentActiveIdx: 0,
+            playerCost: 0,
+            opponentCost: 0,
+            playerDefeated: 0,
+            opponentDefeated: 0,
+            log: [],
+            playerDamageReduction: 0,
+            opponentDamageReduction: 0,
+            playerSkipNext: false,
+            opponentSkipNext: false,
+            playerDoubleDamageNext: false,
+            opponentDoubleDamageNext: false,
+            playerTripleDamageNext: false,
+            opponentTripleDamageNext: false,
+            playerCostMod: 0,
+            opponentCostMod: 0,
+            playerPreviousAttack: null,
+            opponentPreviousAttack: null,
+            playerWaitTurns: 0,
+            opponentWaitTurns: 0,
+            continuousDamageTurns: 0,
+            playerContinuousDamage: 0,
+            opponentContinuousDamage: 0,
+            makibishiDamage: 0
+        };
+
+        function addLog(msg) {
+            gameState.log.push(msg);
+            if (gameState.log.length > 30) gameState.log.shift();
+        }
+
+        function generateDeck() {
+            const deck = [];
+            for (let i = 0; i < 20; i++) {
+                deck.push(Math.floor(Math.random() * chara.length));
+            }
+            return deck;
+        }
+
+        function drawHand(deck) {
+            const hand = [];
+            for (let i = 0; i < 6; i++) {
+                hand.push(deck[Math.floor(Math.random() * deck.length)]);
+            }
+            return hand;
+        }
+
+        function initGame() {
+            const deck1 = generateDeck();
+            const deck2 = generateDeck();
+            
+            gameState.order = Math.random() < 0.5 ? 'first' : 'second';
+            gameState.playerHand = drawHand(gameState.order === 'first' ? deck1 : deck2);
+            gameState.opponentHand = drawHand(gameState.order === 'first' ? deck2 : deck1);
+            
+            addLog(`あなたは${gameState.order === 'first' ? '先攻' : '後攻'}です`);
+            showHandSelection();
+        }
+
+        function showHandSelection() {
+            const container = document.getElementById('gameContainer');
+            const selectedIndices = [];
+            
+            container.innerHTML = `
+                <div class="selection-screen">
+                    <h1 class="selection-title">キャラクター選択</h1>
+                    <p class="selection-subtitle">3体のキャラクターを選んでください</p>
+                    <div class="hand-grid" id="handGrid"></div>
+                    <button class="confirm-btn" id="confirmBtn" disabled>決定</button>
+                </div>
+            `;
+
+            const grid = document.getElementById('handGrid');
+            gameState.playerHand.forEach((cIdx, i) => {
+                const c = chara[cIdx];
+                const card = document.createElement('div');
+                card.className = 'hand-card';
+                card.innerHTML = `
+                    <div class="hand-card-name">${c[0]}</div>
+                    <div class="hand-card-stats">
+                        <span>HP: ${c[1]}</span>
+                        <span>ATK: ${c[2]}</span>
+                    </div>
+                `;
+                card.onclick = () => {
+                    const idx = selectedIndices.indexOf(i);
+                    if (idx > -1) {
+                        selectedIndices.splice(idx, 1);
+                        card.classList.remove('selected');
+                    } else if (selectedIndices.length < 3) {
+                        selectedIndices.push(i);
+                        card.classList.add('selected');
+                    }
+                    document.getElementById('confirmBtn').disabled = selectedIndices.length !== 3;
+                };
+                grid.appendChild(card);
+            });
+
+            document.getElementById('confirmBtn').onclick = () => {
+                gameState.playerTeam = selectedIndices.map(i => ({
+                    charaIdx: gameState.playerHand[i],
+                    hp: chara[gameState.playerHand[i]][1],
+                    maxHp: chara[gameState.playerHand[i]][1],
+                    atk: chara[gameState.playerHand[i]][2],
+                    baseAtk: chara[gameState.playerHand[i]][2],
+                    defeated: false
+                }));
+
+                const cpuSelected = [];
+                while (cpuSelected.length < 3) {
+                    const idx = Math.floor(Math.random() * 6);
+                    if (!cpuSelected.includes(idx)) cpuSelected.push(idx);
+                }
+                gameState.opponentTeam = cpuSelected.map(i => ({
+                    charaIdx: gameState.opponentHand[i],
+                    hp: chara[gameState.opponentHand[i]][1],
+                    maxHp: chara[gameState.opponentHand[i]][1],
+                    atk: chara[gameState.opponentHand[i]][2],
+                    baseAtk: chara[gameState.opponentHand[i]][2],
+                    defeated: false
+                }));
+
+                startTurn();
+            };
+        }
+
+        function startTurn() {
+            gameState.turn++;
+            addLog(`=== ターン ${gameState.turn} ===`);
+            
+            // ターン開始時の処理
+            applyContinuousEffects();
+            checkWaitTurns();
+            
+            if (gameState.order === 'first') {
+                showQuiz();
+            } else {
+                opponentQuiz();
+            }
+        }
+
+        function showQuiz() {
+            const totalQuestions = gameState.turn + 1;
+            let currentQuestion = 0;
+            let correctCount = 0;
+            
+            function displayQuestion() {
+                const container = document.getElementById('gameContainer');
+                const quiz = quizData[Math.floor(Math.random() * quizData.length)];
+                const shuffled = [...quiz.choices].sort(() => Math.random() - 0.5);
+                
+                container.innerHTML = `
+                    <div class="game-header">
+                        <div class="turn-info">ターン ${gameState.turn}</div>
+                        <div class="score-display">
+                            <div class="score-item">あなた ${gameState.playerDefeated}/3</div>
+                            <div class="score-item">相手 ${gameState.opponentDefeated}/3</div>
+                        </div>
+                    </div>
+                    <div class="quiz-container">
+                        <div class="quiz-header">
+                            <div class="quiz-topic">「${quiz.topic}」の問題 (${currentQuestion + 1}/${totalQuestions})</div>
+                            <div style="margin-top:10px; color:#fbbf24">正解数: ${correctCount}</div>
+                        </div>
+                        <div class="quiz-question">${quiz.question}</div>
+                        <div class="quiz-choices" id="choices"></div>
+                    </div>
+                `;
+
+                const choicesDiv = document.getElementById('choices');
+                let answered = false;
+
+                shuffled.forEach((choice, i) => {
+                    const div = document.createElement('div');
+                    div.className = 'quiz-choice';
+                    div.textContent = choice;
+                    div.onclick = () => {
+                        if (answered) return;
+                        answered = true;
+                        
+                        if (choice === quiz.answer) {
+                            div.classList.add('correct');
+                            correctCount++;
+                            addLog(`✓ 正解! (${currentQuestion + 1}問目)`);
+                        } else {
+                            div.classList.add('incorrect');
+                            addLog(`✗ 不正解 (正解: ${quiz.answer})`);
+                        }
+                        
+                        currentQuestion++;
+                        
+                        setTimeout(() => {
+                            if (currentQuestion < totalQuestions) {
+                                displayQuestion();
+                            } else {
+                                gameState.playerCost += correctCount;
+                                addLog(`クイズ終了! コスト+${correctCount}`);
+                                if (gameState.order === 'first') {
+                                    opponentQuiz();
+                                } else {
+                                    showBattle();
+                                }
+                            }
+                        }, 1500);
+                    };
+                    choicesDiv.appendChild(div);
+                });
+            }
+            
+            displayQuestion();
+        }
+
+        function opponentQuiz() {
+            const score = Math.min(gameState.turn + 1, Math.floor(Math.random() * (gameState.turn + 2)));
+            gameState.opponentCost += score;
+            addLog(`相手コスト+${score}`);
+            
+            setTimeout(() => {
+                if (gameState.order === 'first') {
+                    showBattle();
+                } else {
+                    showQuiz();
+                }
+            }, 1000);
+        }
+
+        function applyContinuousEffects() {
+            if (gameState.continuousDamageTurns > 0) {
+                if (gameState.playerContinuousDamage > 0) {
+                    gameState.playerTeam[gameState.playerActiveIdx].hp -= gameState.playerContinuousDamage;
+                    addLog(`継続ダメージ: ${gameState.playerContinuousDamage}`);
+                }
+                if (gameState.opponentContinuousDamage > 0) {
+                    gameState.opponentTeam[gameState.opponentActiveIdx].hp -= gameState.opponentContinuousDamage;
+                    addLog(`相手に継続ダメージ: ${gameState.opponentContinuousDamage}`);
+                }
+                gameState.continuousDamageTurns--;
+            }
+            
+            if (gameState.makibishiDamage > 0) {
+                gameState.opponentTeam[gameState.opponentActiveIdx].hp -= gameState.makibishiDamage;
+                addLog(`まきびしダメージ: ${gameState.makibishiDamage}`);
+            }
+        }
+
+        function checkWaitTurns() {
+            if (gameState.playerWaitTurns > 0) {
+                gameState.playerWaitTurns--;
+                if (gameState.playerWaitTurns === 0) {
+                    gameState.opponentTeam[gameState.opponentActiveIdx].hp = 0;
+                    addLog('ためらいの意思発動！相手を撃破！');
+                    checkDefeat(true);
+                }
+            }
+            
+            if (gameState.opponentWaitTurns > 0) {
+                gameState.opponentWaitTurns--;
+                if (gameState.opponentWaitTurns === 0) {
+                    gameState.playerTeam[gameState.playerActiveIdx].hp = 0;
+                    addLog('相手のためらいの意思発動！');
+                    checkDefeat(false);
+                }
+            }
+        }
+
+        function showBattle() {
+            const container = document.getElementById('gameContainer');
+            
+            container.innerHTML = `
+                <div class="game-header">
+                    <div class="turn-info">ターン ${gameState.turn}</div>
+                    <div class="score-display">
+                        <div class="score-item">${gameState.playerDefeated}/3</div>
+                        <div class="score-item">${gameState.opponentDefeated}/3</div>
+                    </div>
+                </div>
+                <div class="battle-field">
+                    <div class="team-section">
+                        <div class="team-label">
+                            <span>相手</span>
+                            <span class="ko-count">KO: ${gameState.opponentDefeated}</span>
+                        </div>
+                        <div class="character-cards" id="opponentCards"></div>
+                    </div>
+                    <div class="team-section">
+                        <div class="team-label">
+                            <span>あなた</span>
+                            <span class="ko-count">KO: ${gameState.playerDefeated}</span>
+                        </div>
+                        <div class="character-cards" id="playerCards"></div>
+                    </div>
+                </div>
+                <div class="control-panel">
+                    <div class="cost-display">コスト: ${gameState.playerCost}</div>
+                    <div class="action-buttons">
+                        <button class="action-btn swap" onclick="showSwapModal()">交代 (1)</button>
+                        <button class="action-btn" onclick="showSkillModal()">スキル</button>
+                        <button class="action-btn end" onclick="endPlayerTurn()">終了</button>
+                    </div>
+                    <div class="battle-log" id="battleLog"></div>
+                </div>
+            `;
+
+            renderTeams();
+            updateLog();
+        }
+
+        function renderTeams() {
+            const playerDiv = document.getElementById('playerCards');
+            const opponentDiv = document.getElementById('opponentCards');
+
+            if (!playerDiv || !opponentDiv) return;
+
+            playerDiv.innerHTML = '';
+            opponentDiv.innerHTML = '';
+
+            gameState.opponentTeam.forEach((m, i) => {
+                const c = chara[m.charaIdx];
+                const card = document.createElement('div');
+                card.className = `char-card opponent ${i === gameState.opponentActiveIdx ? 'active' : ''} ${m.defeated ? 'defeated' : ''}`;
+                const hpPercent = (m.hp / m.maxHp) * 100;
+                const hpClass = hpPercent > 60 ? '' : hpPercent > 30 ? 'low' : 'critical';
+                
+                card.innerHTML = `
+                    <div class="char-name">${c[0]}</div>
+                    <div class="char-hp">${Math.max(0, m.hp)}/${m.maxHp}</div>
+                    <div class="hp-bar-container">
+                        <div class="hp-bar-fill ${hpClass}" style="width:${Math.max(0, hpPercent)}%"></div>
+                    </div>
+                    <div class="char-atk">⚔️ ${m.atk}</div>
+                `;
+                opponentDiv.appendChild(card);
+            });
+
+            gameState.playerTeam.forEach((m, i) => {
+                const c = chara[m.charaIdx];
+                const card = document.createElement('div');
+                card.className = `char-card ${i === gameState.playerActiveIdx ? 'active' : ''} ${m.defeated ? 'defeated' : ''}`;
+                const hpPercent = (m.hp / m.maxHp) * 100;
+                const hpClass = hpPercent > 60 ? '' : hpPercent > 30 ? 'low' : 'critical';
+                
+                card.innerHTML = `
+                    <div class="char-name">${c[0]}</div>
+                    <div class="char-hp">${Math.max(0, m.hp)}/${m.maxHp}</div>
+                    <div class="hp-bar-container">
+                        <div class="hp-bar-fill ${hpClass}" style="width:${Math.max(0, hpPercent)}%"></div>
+                    </div>
+                    <div class="char-atk">⚔️ ${m.atk}</div>
+                `;
+                playerDiv.appendChild(card);
+            });
+        }
+
+        function showSwapModal() {
+            if (gameState.playerCost < 1) {
+                alert('コストが足りません!');
+                return;
+            }
+
+            const available = gameState.playerTeam
+                .map((m, i) => ({...m, idx: i}))
+                .filter(m => !m.defeated && m.idx !== gameState.playerActiveIdx);
+
+            if (available.length === 0) {
+                alert('交代可能なキャラがいません!');
+                return;
+            }
+
+            const modal = document.createElement('div');
+            modal.className = 'modal-overlay';
+            modal.innerHTML = `
+                <div class="modal-content">
+                    <h3 class="modal-title">キャラクター交代</h3>
+                    <div class="skill-list" id="swapList"></div>
+                    <button class="close-modal" onclick="this.parentElement.parentElement.remove()">キャンセル</button>
+                </div>
+            `;
+
+            const list = modal.querySelector('#swapList');
+            available.forEach((m, i) => {
+                const c = chara[m.charaIdx];
+                const item = document.createElement('div');
+                item.className = 'skill-item';
+                item.innerHTML = `
+                    <div class="skill-name">${c[0]}</div>
+                    <div style="font-size:13px">HP: ${m.hp}/${m.maxHp} / ATK: ${m.atk}</div>
+                `;
+                item.onclick = () => {
+                    gameState.playerCost--;
+                    gameState.playerActiveIdx = m.idx;
+                    addLog(`${c[0]} に交代!`);
+                    modal.remove();
+                    showBattle();
+                };
+                list.appendChild(item);
+            });
+
+            document.body.appendChild(modal);
+        }
+
+        function showSkillModal() {
+            if (gameState.playerSkipNext) {
+                alert('このターンは行動できません!');
+                return;
+            }
+
+            const active = gameState.playerTeam[gameState.playerActiveIdx];
+            const c = chara[active.charaIdx];
+            const skills = c[3];
+
+            const modal = document.createElement('div');
+            modal.className = 'modal-overlay';
+            modal.innerHTML = `
+                <div class="modal-content">
+                    <h3 class="modal-title">スキル選択</h3>
+                    <div style="text-align:center; margin-bottom:15px; color:#fbbf24">
+                        残りコスト: ${gameState.playerCost}
+                    </div>
+                    <div class="skill-list" id="skillList"></div>
+                    <button class="close-modal" onclick="this.parentElement.parentElement.remove()">閉じる</button>
+                </div>
+            `;
+
+            const list = modal.querySelector('#skillList');
+            skills.forEach((sId, i) => {
+                const s = skill[sId];
+                const cost = s[1] + gameState.playerCostMod;
+                const item = document.createElement('div');
+                item.className = 'skill-item';
+                item.innerHTML = `
+                    <div class="skill-name">${s[0]}</div>
+                    <div class="skill-cost">コスト: ${cost}</div>
+                    <div class="skill-desc">${s[2]}</div>
+                `;
+                
+                if (gameState.playerCost >= cost) {
+                    item.onclick = () => {
+                        gameState.playerCost -= cost;
+                        gameState.playerPreviousAttack = sId;
+                        executeSkill(sId, true);
+                        modal.remove();
+                        showBattle();
+                        updateLog();
+                    };
+                } else {
+                    item.style.opacity = '0.4';
+                    item.style.cursor = 'not-allowed';
+                }
+                
+                list.appendChild(item);
+            });
+
+            document.body.appendChild(modal);
+        }
+
+        function executeSkill(sId, isPlayer) {
+            const sName = skill[sId][0];
+            addLog(`💫 ${sName} 発動!`);
+
+            const attacker = isPlayer ? gameState.playerTeam[gameState.playerActiveIdx] : gameState.opponentTeam[gameState.opponentActiveIdx];
+            const defender = isPlayer ? gameState.opponentTeam[gameState.opponentActiveIdx] : gameState.playerTeam[gameState.playerActiveIdx];
+
+            switch(sId) {
+                case 0: // 受け身
+                    if (isPlayer) gameState.playerDamageReduction = 0.3;
+                    else gameState.opponentDamageReduction = 0.3;
+                    addLog("被ダメージ30%軽減(1ターン)");
+                    break;
+
+                case 1: // 尊敬
+                    attacker.hp = Math.min(attacker.maxHp, attacker.hp + 10);
+                    attacker.atk += 10;
+                    defender.atk = Math.max(1, Math.floor(defender.atk * 0.9));
+                    addLog(`HP+10, ATK+10 / 相手ATK-10%`);
+                    break;
+
+                case 2: // 可能
+                    addLog("追加スキル使用!");
+                    if (isPlayer) {
+                        setTimeout(() => showSkillModal(), 500);
+                    }
+                    break;
+
+                case 3: // 自発
+                case 10: // 勧誘
+                    addLog("カードを1枚引いた");
+                    break;
+
+                case 4: // 使役
+                    defender.hp -= defender.atk;
+                    addLog(`相手が自傷! ${defender.atk}ダメージ`);
+                    checkDefeat(isPlayer);
+                    break;
+
+                case 5: // 打消し
+                    if (isPlayer) gameState.playerDamageReduction += 0.1;
+                    else gameState.opponentDamageReduction += 0.1;
+                    addLog("被ダメージ10%軽減");
+                    break;
+
+                case 6: // 打消し推量
+                    if (isPlayer) gameState.opponentSkipNext = true;
+                    else gameState.playerSkipNext = true;
+                    addLog("相手は次ターン行動不可!");
+                    break;
+
+                case 7: // 打消し意思
+                    if (isPlayer) {
+                        gameState.playerSkipNext = true;
+                        gameState.playerDoubleDamageNext = true;
+                    } else {
+                        gameState.opponentSkipNext = true;
+                        gameState.opponentDoubleDamageNext = true;
+                    }
+                    addLog("次ターンスキップ/その次2倍ダメ");
+                    break;
+
+                case 8: // 推量
+                case 25: // 現在推量
+                    defender.atk = Math.max(1, defender.atk - 20);
+                    addLog(`相手ATK-20 (現在: ${defender.atk})`);
+                    break;
+
+                case 9: // 意思
+                    {
+                        let damage = Math.floor(attacker.atk * 1.5);
+                        if (isPlayer && gameState.playerDoubleDamageNext) damage *= 2;
+                        if (!isPlayer && gameState.opponentDoubleDamageNext) damage *= 2;
+                        if (isPlayer && gameState.playerTripleDamageNext) damage *= 3;
+                        if (!isPlayer && gameState.opponentTripleDamageNext) damage *= 3;
+                        
+                        const reduction = isPlayer ? gameState.opponentDamageReduction : gameState.playerDamageReduction;
+                        damage = Math.floor(damage * (1 - reduction));
+                        
+                        defender.hp -= damage;
+                        addLog(`1.5倍攻撃! ${damage}ダメージ`);
+                        checkDefeat(isPlayer);
+                    }
+                    break;
+
+                case 11: // 仮定
+                    if (isPlayer) gameState.opponentCostMod += 2;
+                    else gameState.playerCostMod += 2;
+                    addLog("相手スキルコスト+2");
+                    break;
+
+                case 12: // 婉曲
+                    {
+                        const damage = attacker.baseAtk;
+                        defender.hp -= damage;
+                        addLog(`ベンチ攻撃! ${damage}ダメージ`);
+                        checkDefeat(isPlayer);
+                    }
+                    break;
+
+                case 13: // 反実仮想
+                    attacker.hp = attacker.maxHp;
+                    if (isPlayer) gameState.playerTripleDamageNext = true;
+                    else gameState.opponentTripleDamageNext = true;
+                    addLog("HP全回復! 次ターン3倍ダメ");
+                    break;
+
+                case 14: // ためらいの意志
+                    if (isPlayer) gameState.playerWaitTurns = 2;
+                    else gameState.opponentWaitTurns = 2;
+                    addLog("2ターン待機で相手撃破");
+                    break;
+
+                case 15: // 実現不可能な希望
+                    {
+                        const heal = Math.floor(attacker.maxHp * 0.5);
+                        attacker.hp = Math.min(attacker.maxHp, attacker.hp + heal);
+                        addLog(`HP50%回復! ${heal}回復`);
+                    }
+                    break;
+
+                case 16: // 希望
+                    {
+                        const heal = Math.floor(attacker.maxHp * 0.3);
+                        attacker.hp = Math.min(attacker.maxHp, attacker.hp + heal);
+                        addLog(`HP30%回復! ${heal}回復`);
+                    }
+                    break;
+
+                case 17: // 完了
+                    {
+                        const percent = [10, 20, 30, 40, 50][Math.floor(Math.random() * 5)];
+                        const damage = Math.floor(defender.maxHp * percent / 100);
+                        defender.hp -= damage;
+                        addLog(`ルーレット! 最大HP${percent}% (${damage}ダメージ)`);
+                        checkDefeat(isPlayer);
+                    }
+                    break;
+
+                case 18: // 強意
+                    if (isPlayer) {
+                        gameState.playerCostMod -= 1;
+                        gameState.opponentCostMod += 1;
+                    } else {
+                        gameState.opponentCostMod -= 1;
+                        gameState.playerCostMod += 1;
+                    }
+                    addLog("自分コスト-1 / 相手+1");
+                    break;
+
+                case 19: // 過去
+                    if (isPlayer && gameState.playerPreviousAttack !== null && gameState.playerPreviousAttack !== 19) {
+                        const halfCost = Math.max(1, Math.floor(skill[gameState.playerPreviousAttack][1] / 2));
+                        if (gameState.playerCost >= halfCost) {
+                            gameState.playerCost -= halfCost;
+                            addLog("前回攻撃を半額再使用!");
+                            executeSkill(gameState.playerPreviousAttack, true);
+                        }
+                    }
+                    break;
+
+                case 20: // 詠嘆
+                    addLog("バフ効果次ターン継続");
+                    break;
+
+                case 21: // 存続
+                    if (isPlayer) {
+                        gameState.opponentContinuousDamage = Math.floor(defender.maxHp * 0.1);
+                        gameState.continuousDamageTurns = 3;
+                    } else {
+                        gameState.playerContinuousDamage = Math.floor(defender.maxHp * 0.1);
+                        gameState.continuousDamageTurns = 3;
+                    }
+                    addLog("最大HP10%×3ターン継続ダメ");
+                    break;
+
+                case 22: // 過去推量
+                    defender.hp -= 20;
+                    addLog(`HP-20 (現在: ${Math.max(0, defender.hp)})`);
+                    checkDefeat(isPlayer);
+                    break;
+
+                case 23: // 過去伝聞
+                case 26: // 現在伝聞
+                    if (isPlayer && gameState.opponentPreviousAttack !== null) {
+                        addLog("相手攻撃コピー!");
+                        executeSkill(gameState.opponentPreviousAttack, true);
+                    }
+                    break;
+
+                case 24: // 過去婉曲
+                    defender.hp -= defender.baseAtk;
+                    addLog(`相手ベンチが相手攻撃! ${defender.baseAtk}ダメージ`);
+                    checkDefeat(isPlayer);
+                    break;
+
+                case 27: // 推定
+                    if (defender.hp > 50) {
+                        defender.hp = 50;
+                        addLog("相手HPを50に固定!");
+                    }
+                    break;
+
+                case 28: // 当然
+                    defender.hp -= attacker.atk;
+                    addLog(`バフ無視攻撃! ${attacker.atk}ダメージ`);
+                    checkDefeat(isPlayer);
+                    break;
+
+                case 29: // 命令
+                    addLog("相手カード奪取!");
+                    break;
+
+                case 30: // 適当
+                    addLog("相手メイン/ベンチ入替");
+                    break;
+
+                case 31: // 不可能
+                    addLog("相手次ターンドロー不可");
+                    break;
+
+                case 32: // 打消し当然
+                    if (isPlayer) gameState.opponentCost = 0;
+                    else gameState.playerCost = 0;
+                    addLog("相手コスト全破壊!");
+                    break;
+
+                case 33: // 禁止
+                    addLog("相手サポート使用不可");
+                    break;
+
+                case 34: // 不適当
+                    defender.atk = Math.max(1, defender.atk - 30);
+                    addLog(`相手ATK-30 (現在: ${defender.atk})`);
+                    break;
+
+                case 35: // 断定
+                case 38: // 原因推量
+                    {
+                        let damage = attacker.atk;
+                        const reduction = isPlayer ? gameState.opponentDamageReduction : gameState.playerDamageReduction;
+                        damage = Math.floor(damage * (1 - reduction));
+                        defender.hp -= damage;
+                        addLog(`攻撃! ${damage}ダメージ`);
+                        checkDefeat(isPlayer);
+                    }
+                    break;
+
+                case 36: // 存在
+                    addLog("ベンチと交代");
+                    break;
+
+                case 37: // 比況
+                    if (attacker.hp < defender.hp) {
+                        attacker.hp = defender.hp;
+                        addLog("HPを相手と同値化!");
+                    }
+                    break;
+
+                case 39: // 過去原因推量
+                    {
+                        const damage = defender.maxHp - defender.hp;
+                        defender.hp -= damage;
+                        addLog(`減少HP分ダメ! ${damage}ダメージ`);
+                        checkDefeat(isPlayer);
+                    }
+                    break;
+
+                case 40: // 例示
+                    addLog("次ターンHP0でも行動可");
+                    break;
+
+                case 41: // 並列
+                    {
+                        let damage = attacker.atk;
+                        defender.hp -= damage;
+                        gameState.makibishiDamage = 30;
+                        addLog(`攻撃${damage} + まきびし30/ターン`);
+                        checkDefeat(isPlayer);
+                    }
+                    break;
+            }
+
+            // ダメージ倍率リセット
+            if (isPlayer) {
+                gameState.playerDoubleDamageNext = false;
+                gameState.playerTripleDamageNext = false;
+            } else {
+                gameState.opponentDoubleDamageNext = false;
+                gameState.opponentTripleDamageNext = false;
+            }
+
+            renderTeams();
+        }
+
+        function checkDefeat(isPlayer) {
+            const defender = isPlayer ? gameState.opponentTeam[gameState.opponentActiveIdx] : gameState.playerTeam[gameState.playerActiveIdx];
+
+            if (defender.hp <= 0) {
+                defender.hp = 0;
+                defender.defeated = true;
+                
+                if (isPlayer) {
+                    gameState.playerDefeated++;
+                    addLog('🎉 相手のキャラを撃破!');
+                    
+                    const nextIdx = gameState.opponentTeam.findIndex((m, i) => !m.defeated && i !== gameState.opponentActiveIdx);
+                    if (nextIdx !== -1) {
+                        gameState.opponentActiveIdx = nextIdx;
+                        addLog(`相手が ${chara[gameState.opponentTeam[nextIdx].charaIdx][0]} に交代`);
+                    }
+                } else {
+                    gameState.opponentDefeated++;
+                    addLog('💀 あなたのキャラが撃破された!');
+                    
+                    const nextIdx = gameState.playerTeam.findIndex((m, i) => !m.defeated && i !== gameState.playerActiveIdx);
+                    if (nextIdx !== -1) {
+                        gameState.playerActiveIdx = nextIdx;
+                        addLog(`${chara[gameState.playerTeam[nextIdx].charaIdx][0]} に交代`);
+                    }
+                }
+            }
+        }
+
+        function endPlayerTurn() {
+            addLog('ターン終了');
+            gameState.playerSkipNext = false;
+            setTimeout(() => opponentBattle(), 1000);
+        }
+
+        function opponentBattle() {
+            if (gameState.opponentSkipNext) {
+                addLog('=== 相手はスキップ ===');
+                gameState.opponentSkipNext = false;
+                setTimeout(() => checkVictory(), 1000);
+                return;
+            }
+
+            addLog('=== 相手のターン ===');
+            
+            const active = gameState.opponentTeam[gameState.opponentActiveIdx];
+            const c = chara[active.charaIdx];
+            const skills = c[3];
+            
+            let actions = 0;
+            while (gameState.opponentCost > 0 && actions < 2) {
+                const availableSkills = skills.filter(sId => skill[sId][1] + gameState.opponentCostMod <= gameState.opponentCost);
+                if (availableSkills.length === 0) break;
+                
+                const sId = availableSkills[Math.floor(Math.random() * availableSkills.length)];
+                const cost = skill[sId][1] + gameState.opponentCostMod;
+                gameState.opponentCost -= cost;
+                gameState.opponentPreviousAttack = sId;
+                executeSkill(sId, false);
+                actions++;
+                
+                if (Math.random() < 0.4) break;
+            }
+            
+            setTimeout(() => checkVictory(), 1500);
+        }
+
+        function checkVictory() {
+            if (gameState.playerDefeated >= 3) {
+                showGameEnd(false);
+                return;
+            }
+            
+            if (gameState.opponentDefeated >= 3) {
+                showGameEnd(true);
+                return;
+            }
+            
+            if (gameState.turn >= 15) {
+                showGameEnd(gameState.playerDefeated > gameState.opponentDefeated);
+                return;
+            }
+            
+            renderTeams();
+            updateLog();
+            setTimeout(() => startTurn(), 1000);
+        }
+
+        function showGameEnd(playerWon) {
+            const container = document.getElementById('gameContainer');
+            
+            container.innerHTML = `
+                <div class="result-screen">
+                    <div class="result-title">
+                        ${playerWon ? '🎉 勝利! 🎉' : '💀 敗北'}
+                    </div>
+                    <div class="result-score">
+                        ${gameState.playerDefeated} vs ${gameState.opponentDefeated}
+                    </div>
+                    <div class="result-message">
+                        ${playerWon ? 'おめでとうございます!' : '次は頑張りましょう!'}
+                    </div>
+                    <button class="confirm-btn" onclick="location.reload()">
+                        もう一度プレイ
+                    </button>
+                    <div class="battle-log" style="max-height:300px; margin-top:30px" id="finalLog"></div>
+                </div>
+            `;
+            
+            updateLog();
+        }
+
+        function updateLog() {
+            const logDiv = document.getElementById('battleLog') || document.getElementById('finalLog');
+            if (logDiv) {
+                logDiv.innerHTML = gameState.log.slice(-15).reverse().map(msg => 
+                    `<div class="log-entry">${msg}</div>`
+                ).join('');
+            }
+        }
+
+        window.onload = () => initGame();
+    </script>
+</body>
+</html>
