@@ -427,7 +427,7 @@
             ["めり(終止)", 80, 20, [12,27], 2],
             ["らし", 80, 30, [27], 1],
             ["らむ", 120, 30, [12,25,26], 3],
-            ["け", 120, 30, [19], 1],
+            ["き", 120, 30, [19], 1],
             ["たし", 80, 10, [16], 1],
             ["けむ", 100, 30, [22,23,24], 3],
             ["けり", 100, 30, [19,20], 2],
@@ -1475,34 +1475,36 @@ quizData.forEach(q => {
             renderTeams();
         }
 
-        function checkDefeat(isPlayer) {
-            const defender = isPlayer ? gameState.opponentTeam[gameState.opponentActiveIdx] : gameState.playerTeam[gameState.playerActiveIdx];
+function checkDefeat(isPlayer) {
+    const defender = isPlayer ? gameState.opponentTeam[gameState.opponentActiveIdx] : gameState.playerTeam[gameState.playerActiveIdx];
 
-            if (defender.hp <= 0) {
-                defender.hp = 0;
-                defender.defeated = true;
-                
-                if (isPlayer) {
-                    gameState.playerDefeated++;
-                    addLog('🎉 相手のキャラを撃破!');
-                    
-                    const nextIdx = gameState.opponentTeam.findIndex((m, i) => !m.defeated && i !== gameState.opponentActiveIdx);
-                    if (nextIdx !== -1) {
-                        gameState.opponentActiveIdx = nextIdx;
-                        addLog(`相手が ${chara[gameState.opponentTeam[nextIdx].charaIdx][0]} に交代`);
-                    }
-                } else {
-                    gameState.opponentDefeated++;
-                    addLog('💀 あなたのキャラが撃破された!');
-                    
-                    const nextIdx = gameState.playerTeam.findIndex((m, i) => !m.defeated && i !== gameState.playerActiveIdx);
-                    if (nextIdx !== -1) {
-                        gameState.playerActiveIdx = nextIdx;
-                        addLog(`${chara[gameState.playerTeam[nextIdx].charaIdx][0]} に交代`);
-                    }
-                }
+    if (defender.hp <= 0) {
+        defender.hp = 0;
+        defender.defeated = true;
+        
+        if (isPlayer) {
+            // プレイヤーが相手を倒した → 相手の撃破カウントを増やす
+            gameState.opponentDefeated++;
+            addLog('🎉 相手のキャラを撃破!');
+            
+            const nextIdx = gameState.opponentTeam.findIndex((m, i) => !m.defeated && i !== gameState.opponentActiveIdx);
+            if (nextIdx !== -1) {
+                gameState.opponentActiveIdx = nextIdx;
+                addLog(`相手が ${chara[gameState.opponentTeam[nextIdx].charaIdx][0]} に交代`);
+            }
+        } else {
+            // 相手がプレイヤーを倒した → プレイヤーの撃破カウントを増やす
+            gameState.playerDefeated++;
+            addLog('💀 あなたのキャラが撃破された!');
+            
+            const nextIdx = gameState.playerTeam.findIndex((m, i) => !m.defeated && i !== gameState.playerActiveIdx);
+            if (nextIdx !== -1) {
+                gameState.playerActiveIdx = nextIdx;
+                addLog(`${chara[gameState.playerTeam[nextIdx].charaIdx][0]} に交代`);
             }
         }
+    }
+}
 
         function endPlayerTurn() {
             addLog('ターン終了');
